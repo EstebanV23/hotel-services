@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model estados_tbl {
+  id_estado                         Int                      @unique @default(autoincrement())
+  nom_estados                       String?                  @db.VarChar(45)
+  cod_estados                       String?                  @db.VarChar(45)
+  ind_hab_estados                   Int?                     @db.TinyInt
+  grupo_estados_tbl_id_grupo_estado Int
+  grupo_estados_tbl                 grupo_estados_tbl        @relation(fields: [grupo_estados_tbl_id_grupo_estado], references: [id_grupo_estado], onDelete: NoAction, onUpdate: NoAction, map: "fk_estados_tbl_grupo_estados_tbl1")
+  reserva_habitacion_tbl            reserva_habitacion_tbl[]
+  reserva_tbl                       reserva_tbl[]
+
+  @@id([id_estado, grupo_estados_tbl_id_grupo_estado])
+  @@index([grupo_estados_tbl_id_grupo_estado], map: "fk_estados_tbl_grupo_estados_tbl1_idx")
+}
+
+model grupo_estados_tbl {
+  id_grupo_estado      Int           @id @default(autoincrement())
+  nom_grupo_estado     String?       @db.VarChar(45)
+  cod_grupo_estado     String?       @db.VarChar(45)
+  ind_hab_grupo_estado Int?          @db.TinyInt
+  estados_tbl          estados_tbl[]
+}
+
+model habitacion_tbl {
+  id_habitacion                  Int                      @unique @default(autoincrement())
+  des_habitacion                 String?                  @db.VarChar(200)
+  id_tipo_alojamiento_habitacion Int
+  tipo_alojamiento_tbl           tipo_alojamiento_tbl     @relation(fields: [id_tipo_alojamiento_habitacion], references: [id_tipo_alojamiento], onDelete: NoAction, onUpdate: NoAction, map: "fk_habitacion_tbl_tipo_alojamiento_tbl1")
+  reserva_habitacion_tbl         reserva_habitacion_tbl[]
+  servicio_habitacion            servicio_habitacion[]
+  images_tbl                     images_tbl[]
+
+  @@id([id_habitacion, id_tipo_alojamiento_habitacion])
+  @@index([id_tipo_alojamiento_habitacion], map: "fk_habitacion_tbl_tipo_alojamiento_tbl1_idx")
+}
+
+model reserva_habitacion_tbl {
+  id_reserva_reserva_habitacion    Int
+  id_habitacion_reserva_habitacion Int
+  id_estado_reserva_habitacion     Int
+  estados_tbl                      estados_tbl    @relation(fields: [id_estado_reserva_habitacion], references: [id_estado], onDelete: NoAction, onUpdate: NoAction, map: "fk_reserva_tbl_has_habitacion_tbl_estados_tbl1")
+  habitacion_tbl                   habitacion_tbl @relation(fields: [id_habitacion_reserva_habitacion], references: [id_habitacion], onDelete: NoAction, onUpdate: NoAction, map: "fk_reserva_tbl_has_habitacion_tbl_habitacion_tbl1")
+  reserva_tbl                      reserva_tbl    @relation(fields: [id_reserva_reserva_habitacion], references: [id_reserva], onDelete: NoAction, onUpdate: NoAction, map: "fk_reserva_tbl_has_habitacion_tbl_reserva_tbl1")
+
+  @@id([id_reserva_reserva_habitacion, id_habitacion_reserva_habitacion, id_estado_reserva_habitacion])
+  @@index([id_estado_reserva_habitacion], map: "fk_reserva_tbl_has_habitacion_tbl_estados_tbl1_idx")
+  @@index([id_habitacion_reserva_habitacion], map: "fk_reserva_tbl_has_habitacion_tbl_habitacion_tbl1_idx")
+  @@index([id_reserva_reserva_habitacion], map: "fk_reserva_tbl_has_habitacion_tbl_reserva_tbl1_idx")
+}
+
+model reserva_tbl {
+  id_reserva             Int                      @unique @default(autoincrement())
+  fec_ent_reserva        DateTime?                @db.DateTime(0)
+  fec_sal_reserva        DateTime?                @db.DateTime(0)
+  des_reserva            String?                  @db.VarChar(200)
+  can_per_reserva        Int?
+  cos_tot_reserva        Float?
+  fec_reg_reserva        DateTime?                @db.DateTime(0)
+  id_estado_reserva      Int
+  id_usuario_reserva     Int
+  reserva_habitacion_tbl reserva_habitacion_tbl[]
+  estados_tbl            estados_tbl              @relation(fields: [id_estado_reserva], references: [id_estado], onDelete: NoAction, onUpdate: NoAction, map: "fk_reserva_tbl_estados_tbl1")
+  usuario_tbl            usuario_tbl              @relation(fields: [id_usuario_reserva], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_reserva_tbl_usuario_tbl1")
+
+  @@id([id_reserva, id_estado_reserva, id_usuario_reserva])
+  @@index([id_estado_reserva], map: "fk_reserva_tbl_estados_tbl1_idx")
+  @@index([id_usuario_reserva], map: "fk_reserva_tbl_usuario_tbl1_idx")
+}
+
+model servicio_habitacion {
+  id_habitacion_servicio_habitacion Int
+  id_servicio_servicio_habitacion   Int
+  can_servicio_habitacion           Int?
+  habitacion_tbl                    habitacion_tbl @relation(fields: [id_habitacion_servicio_habitacion], references: [id_habitacion], onDelete: NoAction, onUpdate: NoAction, map: "fk_habitacion_tbl_has_servicio_tbl_habitacion_tbl1")
+  servicio_tbl                      servicio_tbl   @relation(fields: [id_servicio_servicio_habitacion], references: [id_servicio], onDelete: NoAction, onUpdate: NoAction, map: "fk_habitacion_tbl_has_servicio_tbl_servicio_tbl1")
+
+  @@id([id_habitacion_servicio_habitacion, id_servicio_servicio_habitacion])
+  @@index([id_habitacion_servicio_habitacion], map: "fk_habitacion_tbl_has_servicio_tbl_habitacion_tbl1_idx")
+  @@index([id_servicio_servicio_habitacion], map: "fk_habitacion_tbl_has_servicio_tbl_servicio_tbl1_idx")
+}
+
+model tipo_servicio_tbl {
+  id_tipo_servicio  Int            @id @default(autoincrement())
+  nom_tipo_servicio String?        @db.VarChar(45)
+  cod_tipo_servicio String?        @db.VarChar(45)
+  des_tipo_servicio String?        @db.VarChar(200)
+  ico_tipo_servicio String?        @db.VarChar(45)
+  servicio_tbl      servicio_tbl[]
+}
+
+model servicio_tbl {
+  id_servicio         Int                   @id @default(autoincrement())
+  nom_servicio        String?               @db.VarChar(45)
+  des_servicio        String?               @db.VarChar(200)
+  pre_servicio        Float?
+  ind_hab_servicio    Int?                  @db.TinyInt
+  can_per_servicio    Int?
+  id_tipo_servicio    Int
+  servicio_habitacion servicio_habitacion[]
+  tipo_servicio_tbl   tipo_servicio_tbl     @relation(fields: [id_tipo_servicio], references: [id_tipo_servicio], onDelete: NoAction, onUpdate: NoAction, map: "fk_servicio_tbl_tipo_servicio_tbl1")
+
+  @@index([id_tipo_servicio], map: "fk_servicio_tbl_tipo_servicio_tbl1")
+}
+
+model tipo_alojamiento_tbl {
+  id_tipo_alojamiento  Int              @id @default(autoincrement())
+  nom_tipo_alojamiento String?          @db.VarChar(45)
+  des_tipo_alojamiento String?          @db.VarChar(200)
+  ico_tipo_alojamiento String?          @db.VarChar(45)
+  habitacion_tbl       habitacion_tbl[]
+}
+
+model usuario_tbl {
+  id_usuario      Int           @id @default(autoincrement())
+  nom_usuario     String        @db.VarChar(45)
+  fec_nac_usuario DateTime      @db.DateTime(0)
+  tel_usuario     String        @db.VarChar(45)
+  ema_usuario     String        @db.VarChar(100)
+  dir_usuario     String?       @db.VarChar(100)
+  tip_doc_usuario String        @db.VarChar(45)
+  num_doc_usuario String        @db.VarChar(45)
+  con_usuario     String        @db.LongText
+  reserva_tbl     reserva_tbl[]
+}
+
+model images_tbl {
+  id_image      Int     @id @default(autoincrement())
+  url_image     String  @db.LongText
+  ind_pri_image Int?    @db.TinyInt
+  id_habitacion Int
+  habitacion_tbl habitacion_tbl @relation(fields: [id_habitacion], references: [id_habitacion], onDelete: NoAction, onUpdate: NoAction, map: "fk_images_tbl_habitacion_tbl1")
+
+  @@index([id_habitacion], map: "fk_images_tbl_habitacion_tbl1_idx")
+}
