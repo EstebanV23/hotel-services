@@ -2,61 +2,13 @@ import { TipoServicio } from '../../tiposervicio/enums/TipoServicioEnum'
 import config from '../../../config/config'
 
 import { Habitacion } from '../models/Habitacion'
-import { Servicio, ServicioInput } from '../../servicio/models/Servicio'
 import { EstadosCodigos, freeStates } from '../../estado/enums/EstadosCodigos'
-import { Prisma } from '../../../generated/client'
+import { HabitacionServiceInterface } from './HabitacionServiceInterface'
 
 const prisma = config.prisma
-
-export class HabitacionService {
-  async create ({ habitacion }: { habitacion: Habitacion }): Promise<Habitacion> {
-    return await prisma.habitacion_tbl.create({
-      data: habitacion
-    })
-  }
-
-  async findAll (): Promise<Habitacion[]> {
-    return await prisma.habitacion_tbl.findMany({
-      include: {
-        tipo_alojamiento_tbl: true,
-        servicio_habitacion: {
-          include: {
-            servicio_tbl: {
-              include: {
-                tipo_servicio_tbl: true
-              }
-            }
-          }
-        }
-      }
-    })
-  }
-
-  async findOne ({ idHabitacion }: { idHabitacion: number }): Promise<Habitacion | null> {
-    return await prisma.habitacion_tbl.findUnique({ where: { id_habitacion: idHabitacion } })
-  }
-
-  async update ({ idHabitacion, habitacion }: { idHabitacion: number, habitacion: Habitacion }): Promise<Habitacion> {
-    return await prisma.habitacion_tbl.update({ where: { id_habitacion: idHabitacion }, data: habitacion })
-  }
-
-  async delete ({ idHabitacion }: { idHabitacion: number }): Promise<Habitacion> {
-    return await prisma.habitacion_tbl.delete({ where: { id_habitacion: idHabitacion } })
-  }
-
-  async findByCantPersonas ({
-    cantPersonas,
-    listaServicios,
-    fecInicio,
-    fecFinal
-  }: {
-    cantPersonas: number
-    listaServicios: number[]
-    fecInicio: string
-    fecFinal: string
-  }): Promise<Habitacion[]> {
+export class HabitacionService implements HabitacionServiceInterface {
+  async findByCantPersonas ({ cantPersonas, listaServicios, fecInicio, fecFinal }: { cantPersonas: number, listaServicios: number[], fecInicio: string, fecFinal: string }): Promise<Habitacion[]> {
     const codigoCama = TipoServicio.COD_CAMA
-
     const whereServices = listaServicios?.length > 0
       ? {
           id_servicio: {
@@ -94,9 +46,13 @@ export class HabitacionService {
       }
     })
     return habitaciones.filter(habitacion => {
-      const serviciosCama = habitacion.servicio_habitacion.filter(servicioHabitacion => servicioHabitacion.servicio_tbl.tipo_servicio_tbl.cod_tipo_servicio === codigoCama)
+      const serviciosCama = habitacion.servicio_habitacion.filter(servicioHabitacion => (
+        servicioHabitacion.servicio_tbl.tipo_servicio_tbl.cod_tipo_servicio === codigoCama
+      ))
       // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-      const totalPersonas = serviciosCama.reduce((acc, servicioHabitacion) => acc + ((servicioHabitacion.can_servicio_habitacion ?? 0) * (servicioHabitacion.servicio_tbl.can_per_servicio ?? 0)), 0)
+      const totalPersonas = serviciosCama.reduce((acc, servicioHabitacion) => (
+        acc + ((servicioHabitacion.can_servicio_habitacion ?? 0) * (servicioHabitacion.servicio_tbl.can_per_servicio ?? 0))
+      ), 0)
 
       const habitacionOcupada = habitacion.reserva_habitacion_tbl.some(reservaHabitacion => {
         const initDate = new Date(fecInicio)
@@ -110,23 +66,42 @@ export class HabitacionService {
     })
   }
 
-  async reservarHabitacion ({
-    fecInicio,
-    fecFinal,
-    desReserva,
-    cantPersonas,
-    costTotal,
-    idUsuario,
-    idHabitacion
-  }: {
-    fecInicio: Date
-    fecFinal: Date
-    desReserva: string
-    cantPersonas: number
-    costTotal: number
-    idUsuario: number
-    idHabitacion: number
-  }): Promise<Habitacion | null> {
+  async create ({ habitacion }: { habitacion: Habitacion }): Promise<Habitacion> {
+    return await prisma.habitacion_tbl.create({
+      data: habitacion
+    })
+  }
+
+  async findAll (): Promise<Habitacion[]> {
+    return await prisma.habitacion_tbl.findMany({
+      include: {
+        tipo_alojamiento_tbl: true,
+        servicio_habitacion: {
+          include: {
+            servicio_tbl: {
+              include: {
+                tipo_servicio_tbl: true
+              }
+            }
+          }
+        }
+      }
+    })
+  }
+
+  async findOne ({ idHabitacion }: { idHabitacion: number }): Promise<Habitacion | null> {
+    return await prisma.habitacion_tbl.findUnique({ where: { id_habitacion: idHabitacion } })
+  }
+
+  async update ({ idHabitacion, habitacion }: { idHabitacion: number, habitacion: Habitacion }): Promise<Habitacion> {
+    return await prisma.habitacion_tbl.update({ where: { id_habitacion: idHabitacion }, data: habitacion })
+  }
+
+  async delete ({ idHabitacion }: { idHabitacion: number }): Promise<Habitacion> {
+    return await prisma.habitacion_tbl.delete({ where: { id_habitacion: idHabitacion } })
+  }
+
+  async reservarHabitacion ({ fecInicio, fecFinal, desReserva, cantPersonas, costTotal, idUsuario, idHabitacion }: { fecInicio: Date, fecFinal: Date, desReserva: string, cantPersonas: number, costTotal: number, idUsuario: number, idHabitacion: number }): Promise<Habitacion | null> {
     try {
       const estado = await prisma.estados_tbl.findFirst({ where: { cod_estados: EstadosCodigos.RESE } })
       if (estado == null) {
@@ -165,6 +140,7 @@ export class HabitacionService {
       }
       return habitacion
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(error)
       return null
     }
